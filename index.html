@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FIN — Assistente Financeira Virtual</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:        #0a0f0d;
+      --surface:   #111814;
+      --card:      #162019;
+      --border:    #1e3028;
+      --green:     #00c96e;
+      --green-dim: #00844a;
+      --green-glow:#00c96e33;
+      --gold:      #d4a836;
+      --text:      #e8f0eb;
+      --muted:     #7a9485;
+      --user-bg:   #1a2e22;
+      --bot-bg:    #0f1d16;
+      --radius:    16px;
+      --font-display: 'Playfair Display', Georgia, serif;
+      --font-body:    'DM Sans', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-weight: 300;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Animated background grid */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.4;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Glowing orb */
+    body::after {
+      content: '';
+      position: fixed;
+      top: -200px;
+      right: -200px;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, var(--green-glow) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+      animation: orb-drift 8s ease-in-out infinite alternate;
+    }
+
+    @keyframes orb-drift {
+      from { transform: translate(0, 0); }
+      to   { transform: translate(-60px, 80px); }
+    }
+
+    /* ── LAYOUT ── */
+    .shell {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      max-width: 900px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 0 16px;
+    }
+
+    /* ── HEADER ── */
+    header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 20px 0 16px;
+      border-bottom: 1px solid var(--border);
+      animation: slide-down 0.6s ease both;
+    }
+
+    @keyframes slide-down {
+      from { opacity: 0; transform: translateY(-20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--green), var(--green-dim));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+      box-shadow: 0 0 20px var(--green-glow);
+      animation: pulse-glow 3s ease-in-out infinite;
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 20px var(--green-glow); }
+      50%       { box-shadow: 0 0 40px #00c96e55; }
+    }
+
+    .header-info h1 {
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.02em;
+    }
+
+    .header-info h1 span { color: var(--green); }
+
+    .header-info p {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 2px;
+      font-weight: 400;
+    }
+
+    .status {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.7rem;
+      color: var(--green);
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: blink 2s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+
+    /* ── QUICK ACTIONS ── */
+    .quick-actions {
+      display: flex;
+      gap: 8px;
+      padding: 12px 0 8px;
+      flex-wrap: wrap;
+      animation: slide-down 0.6s 0.1s ease both;
+      opacity: 0;
+    }
+
+    .chip {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-family: var(--font-body);
+      font-size: 0.72rem;
+      font-weight: 500;
+      padding: 5px 12px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .chip:hover {
+      background: var(--green-glow);
+      border-color: var(--green);
+      color: var(--green);
+      transform: translateY(-1px);
+    }
+
+    /* ── CHAT AREA ── */
+    .chat-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    .chat-area::-webkit-scrollbar { width: 4px; }
+    .chat-area::-webkit-scrollbar-track { background: transparent; }
+    .chat-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    /* ── MESSAGES ── */
+    .msg {
+      display: flex;
+      gap: 10px;
+      animation: msg-in 0.35s cubic-bezier(0.34,1.56,0.64,1) both;
+      max-width: 80%;
+    }
+
+    @keyframes msg-in {
+      from { opacity: 0; transform: translateY(12px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .msg.user { flex-direction: row-reverse; align-self: flex-end; }
+    .msg.bot  { align-self: flex-start; }
+
+    .msg-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .msg.bot  .msg-avatar { background: linear-gradient(135deg, var(--green), var(--green-dim)); }
+    .msg.user .msg-avatar { background: var(--user-bg); border: 1px solid var(--border); }
+
+    .bubble {
+      padding: 12px 16px;
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      line-height: 1.6;
+      font-weight: 400;
+      max-width: 100%;
+    }
+
+    .msg.bot  .bubble {
+      background: var(--bot-bg);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 4px;
+      color: var(--text);
+    }
+
+    .msg.user .bubble {
+      background: var(--user-bg);
+      border: 1px solid #2a4835;
+      border-bottom-right-radius: 4px;
+      color: var(--text);
+    }
+
+    .bubble strong { color: var(--green); font-weight: 500; }
+    .bubble em { color: var(--gold); font-style: normal; }
+
+    /* Typing indicator */
+    .typing .bubble {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 14px 18px;
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: bounce 1.2s ease-in-out infinite;
+    }
+
+    .dot:nth-child(2) { animation-delay: 0.15s; }
+    .dot:nth-child(3) { animation-delay: 0.30s; }
+
+    @keyframes bounce {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+      30%            { transform: translateY(-6px); opacity: 1; }
+    }
+
+    /* ── CALC CARD ── */
+    .calc-card {
+      background: var(--card);
+      border: 1px solid var(--green-dim);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      margin-top: 6px;
+      font-size: 0.82rem;
+    }
+
+    .calc-card .calc-title {
+      color: var(--green);
+      font-weight: 500;
+      margin-bottom: 8px;
+      font-size: 0.85rem;
+    }
+
+    .calc-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .calc-row:last-child { border-bottom: none; font-weight: 500; color: var(--green); }
+    .calc-row span:first-child { color: var(--muted); }
+
+    /* ── INPUT ── */
+    .input-area {
+      padding: 12px 0 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      animation: slide-up 0.5s 0.2s ease both;
+      opacity: 0;
+    }
+
+    @keyframes slide-up {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    textarea {
+      flex: 1;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 0.875rem;
+      font-weight: 300;
+      padding: 12px 16px;
+      resize: none;
+      outline: none;
+      max-height: 120px;
+      min-height: 46px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      line-height: 1.5;
+    }
+
+    textarea::placeholder { color: var(--muted); }
+
+    textarea:focus {
+      border-color: var(--green-dim);
+      box-shadow: 0 0 0 3px var(--green-glow);
+    }
+
+    .send-btn {
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      background: var(--green);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.2s;
+      color: var(--bg);
+    }
+
+    .send-btn:hover  { background: #00e07a; transform: scale(1.05); }
+    .send-btn:active { transform: scale(0.96); }
+    .send-btn:disabled { background: var(--border); cursor: not-allowed; transform: none; }
+
+    .send-btn svg { width: 18px; height: 18px; }
+
+    /* ── FOOTER ── */
+    .footer-note {
+      text-align: center;
+      font-size: 0.65rem;
+      color: var(--muted);
+      padding-bottom: 6px;
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- HEADER -->
+  <header>
+    <div class="avatar">💰</div>
+    <div class="header-info">
+      <h1><span>FIN</span> — Assistente Financeira Virtual</h1>
+      <p>IA Generativa · Educação Financeira · Simulações · FAQs</p>
+    </div>
+    <div class="status">
+      <div class="status-dot"></div>
+      online
+    </div>
+  </header>
+
+  <!-- QUICK ACTIONS -->
+  <div class="quick-actions">
+    <button class="chip" onclick="quickSend('O que é o Tesouro Direto?')">📈 Tesouro Direto</button>
+    <button class="chip" onclick="quickSend('Como montar uma reserva de emergência?')">🛡️ Reserva de Emergência</button>
+    <button class="chip" onclick="quickSend('Qual a diferença entre CDB e poupança?')">🏦 CDB vs Poupança</button>
+    <button class="chip" onclick="quickSend('Simule juros compostos de R$5000 a 1% ao mês por 24 meses')">🧮 Simulação</button>
+    <button class="chip" onclick="quickSend('Me dê 5 dicas para sair das dívidas')">💡 Sair das dívidas</button>
+  </div>
+
+  <!-- CHAT AREA -->
+  <div class="chat-area" id="chatArea"></div>
+
+  <!-- INPUT -->
+  <div class="input-area">
+    <textarea
+      id="userInput"
+      placeholder="Pergunte sobre finanças, peça simulações, tire dúvidas..."
+      rows="1"
+      onkeydown="handleKey(event)"
+      oninput="autoResize(this)"
+    ></textarea>
+    <button class="send-btn" id="sendBtn" onclick="sendMessage()" title="Enviar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="22" y1="2" x2="11" y2="13"></line>
+        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+      </svg>
+    </button>
+  </div>
+  <p class="footer-note">⚠️ FIN é uma IA educacional. Consulte um profissional certificado para decisões financeiras importantes.</p>
+
+</div>
+
+<script>
+  // ─── API CONFIG ───────────────────────────────────────────────────────────
+  const API_KEY = ""; // Insira sua OPENAI_API_KEY aqui para produção
+  const SYSTEM_PROMPT = `Você é a FIN, uma assistente financeira virtual inteligente, empática e didática.
+Seu objetivo é ajudar usuários brasileiros a entender melhor suas finanças pessoais.
+Responda sempre em português brasileiro, de forma clara, acessível e encorajadora.
+Use emojis moderadamente. Para cálculos financeiros, mostre os valores formatados em reais.
+Explique conceitos com exemplos práticos. Nunca recomende investimentos específicos com garantias.
+Sempre reforce consultar um profissional para decisões importantes.`;
+
+  // ─── STATE ───────────────────────────────────────────────────────────────
+  let history = [];
+  let isTyping = false;
+
+  // ─── RESPOSTAS FALLBACK (sem API key) ────────────────────────────────────
+  const fallbackResponses = {
+    "tesouro": "📈 **Tesouro Direto** é o programa do governo federal para venda de títulos públicos a pessoas físicas. É considerado o investimento mais seguro do Brasil, pois é garantido pela União!\n\nExistem 3 tipos principais:\n• **Tesouro Selic** — acompanha a taxa básica de juros, ideal para reserva de emergência\n• **Tesouro Prefixado** — taxa fixa definida na compra\n• **Tesouro IPCA+** — protege contra a inflação + taxa real\n\nVocê pode investir a partir de R$ 30! 💚",
+    "cdb": "🏦 **CDB (Certificado de Depósito Bancário)** é emitido por bancos para captar recursos. Principais características:\n\n• Rende geralmente **um % do CDI** (ex: 100% do CDI, 110% do CDI)\n• Garantido pelo **FGC até R$ 250 mil** por CPF/instituição\n• Imposto de Renda regressivo (de 22,5% a 15%)\n• **Poupança** rende 0,5%/mês + TR e também tem garantia do FGC\n\nEm geral, CDBs que rendem acima de 100% do CDI são mais vantajosos que a poupança. 📊",
+    "reserva": "🛡️ **Reserva de Emergência** é essencial! Aqui está o plano:\n\n**Meta:** 6 a 12 meses do seu custo de vida\n\n**Exemplo prático:**\n• Gastos mensais: R$ 3.000\n• Meta ideal: R$ 18.000 a R$ 36.000\n\n**Onde guardar?**\n✅ Tesouro Selic (rendimento + liquidez)\n✅ CDB com liquidez diária 100%+ CDI\n✅ Conta Corrente Remunerada\n\n❌ Evite: poupança (rende menos) ou investimentos de risco",
+    "dívida": "💡 **5 Passos para Sair das Dívidas:**\n\n1. **Liste tudo** — anote todas as dívidas com valores, taxas e prazos\n2. **Priorize pelo juro** — quite primeiro as de maior taxa (cartão > cheque especial)\n3. **Negocie** — bancos e financeiras frequentemente oferecem descontos à vista\n4. **Corte gastos** — identifique e elimine gastos desnecessários temporariamente\n5. **Crie uma reserva mínima** — mesmo R$ 50/mês evita novas dívidas\n\n💚 O importante é começar. Pequenos passos constantes chegam longe!",
+    "default": "Olá! Sou a **FIN**, sua assistente financeira virtual! 💰\n\nPosso te ajudar com:\n• 📈 Explicações sobre investimentos\n• 🧮 Simulações financeiras\n• 💡 Dicas de educação financeira\n• 🏦 FAQs sobre produtos bancários\n• 🛡️ Planejamento e reserva de emergência\n\nInsira sua **OpenAI API Key** no código para respostas dinâmicas via IA. Por enquanto, use os botões de atalho acima! 😊"
+  };
+
+  function getFallback(msg) {
+    const m = msg.toLowerCase();
+    if (m.includes("tesouro")) return fallbackResponses.tesouro;
+    if (m.includes("cdb") || m.includes("poupança")) return fallbackResponses.cdb;
+    if (m.includes("reserva") || m.includes("emergência")) return fallbackResponses.reserva;
+    if (m.includes("dívida") || m.includes("divida") || m.includes("dívidas")) return fallbackResponses.divida;
+    return fallbackResponses.default;
+  }
+
+  // ─── SIMULAÇÕES ──────────────────────────────────────────────────────────
+  function tryCalculate(msg) {
+    const m = msg.toLowerCase();
+    const nums = msg.match(/[\d]+(?:[.,]\d+)?/g)?.map(n => parseFloat(n.replace(",","."))) || [];
+
+    if ((m.includes("juros compostos") || m.includes("simul")) && nums.length >= 3) {
+      const [principal, taxa, meses] = nums;
+      const montante = principal * Math.pow(1 + taxa/100, meses);
+      const juros = montante - principal;
+      return `🧮 **Simulação — Juros Compostos**\n\n` +
+        `• Capital inicial: **R$ ${principal.toLocaleString("pt-BR", {minimumFractionDigits:2})}**\n` +
+        `• Taxa mensal: ${taxa}%\n• Período: ${meses} meses\n\n` +
+        `✅ **Montante final: R$ ${montante.toLocaleString("pt-BR", {minimumFractionDigits:2})}**\n` +
+        `📈 Juros ganhos: R$ ${juros.toLocaleString("pt-BR", {minimumFractionDigits:2})} (+${((juros/principal)*100).toFixed(1)}%)\n\n` +
+        `_Os juros compostos são o "8º maravilha do mundo" — Einstein_ 💡`;
+    }
+    return null;
+  }
+
+  // ─── RENDER ──────────────────────────────────────────────────────────────
+  function formatText(text) {
+    return text
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/_(.*?)_/g, '<em>$1</em>')
+      .replace(/\n/g, '<br>');
+  }
+
+  function addMessage(content, role) {
+    const area = document.getElementById("chatArea");
+    const div  = document.createElement("div");
+    div.className = `msg ${role}`;
+
+    const avatarIcon = role === "bot" ? "💰" : "👤";
+    div.innerHTML = `
+      <div class="msg-avatar">${avatarIcon}</div>
+      <div class="bubble">${formatText(content)}</div>
+    `;
+    area.appendChild(div);
+    area.scrollTop = area.scrollHeight;
+  }
+
+  function showTyping() {
+    const area = document.getElementById("chatArea");
+    const div  = document.createElement("div");
+    div.className = "msg bot typing";
+    div.id = "typingIndicator";
+    div.innerHTML = `
+      <div class="msg-avatar">💰</div>
+      <div class="bubble">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+    `;
+    area.appendChild(div);
+    area.scrollTop = area.scrollHeight;
+  }
+
+  function removeTyping() {
+    const el = document.getElementById("typingIndicator");
+    if (el) el.remove();
+  }
+
+  // ─── SEND ────────────────────────────────────────────────────────────────
+  async function sendMessage() {
+    const input = document.getElementById("userInput");
+    const btn   = document.getElementById("sendBtn");
+    const text  = input.value.trim();
+    if (!text || isTyping) return;
+
+    addMessage(text, "user");
+    input.value = "";
+    autoResize(input);
+    isTyping = true;
+    btn.disabled = true;
+    showTyping();
+
+    // Try local calculation first
+    const calc = tryCalculate(text);
+
+    await new Promise(r => setTimeout(r, 800 + Math.random() * 600));
+    removeTyping();
+
+    if (calc) {
+      addMessage(calc, "bot");
+      history.push({role:"user",content:text},{role:"assistant",content:calc});
+    } else if (API_KEY) {
+      // Real API call
+      try {
+        history.push({role:"user",content:text});
+        const res = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "claude-sonnet-4-20250514",
+            max_tokens: 1000,
+            system: SYSTEM_PROMPT,
+            messages: history.slice(-10),
+          })
+        });
+        const data = await res.json();
+        const reply = data.content?.[0]?.text || "Desculpe, não consegui processar sua pergunta.";
+        addMessage(reply, "bot");
+        history.push({role:"assistant",content:reply});
+      } catch(e) {
+        addMessage("❌ Erro de conexão com a IA. Verifique sua chave de API.", "bot");
+      }
+    } else {
+      const reply = getFallback(text);
+      addMessage(reply, "bot");
+      history.push({role:"user",content:text},{role:"assistant",content:reply});
+    }
+
+    isTyping = false;
+    btn.disabled = false;
+  }
+
+  function quickSend(msg) {
+    document.getElementById("userInput").value = msg;
+    sendMessage();
+  }
+
+  function handleKey(e) {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  }
+
+  function autoResize(el) {
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 120) + "px";
+  }
+
+  // ─── INIT ────────────────────────────────────────────────────────────────
+  window.addEventListener("load", () => {
+    setTimeout(() => {
+      addMessage(
+        "Olá! Sou a **FIN**, sua assistente financeira virtual! 💰\n\n" +
+        "Posso te ajudar com:\n• Explicações sobre investimentos e produtos bancários\n" +
+        "• Simulações de juros compostos, financiamentos e reserva de emergência\n" +
+        "• Dicas de educação financeira e planejamento\n• FAQs sobre crédito, cartões e bancos\n\n" +
+        "Use os atalhos acima ou me faça uma pergunta! 😊",
+        "bot"
+      );
+    }, 400);
+  });
+</script>
+</body>
+</html>
